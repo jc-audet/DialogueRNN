@@ -39,7 +39,7 @@ def count_emotion_shift(data_path, speaker=False):
                 dialogue_count[shift] = dialogue_count.get(shift, 0) + 1
             dial_shift[name]=Counter(s)
 
-    return Counter(total_shifts), dialogue_count,dial_shift
+    return Counter(total_shifts), dialogue_count, dial_shift
 
 
 def generate_emotion_dataframe(videoIDs,videoLabels,videoSpeakers):
@@ -104,7 +104,7 @@ def getOODSplit(videoIDs, videoSpeakers, videoLabels, trainVid, testVid , emotio
 
     testVid_final = list((set(testVid) - set(total) - train_extra) | set(testVid_new))
 
-    return  trainVid_final,validVid_final,testVid_final
+    return  trainVid_final, validVid_final, testVid_final
 
 
 videoIDs,videoSpeakers, videoLabels, videoText, \

@@ -3,33 +3,41 @@ from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 import pickle
 import pandas as pd
+import numpy as np
 
 class IEMOCAPDataset(Dataset):
     def __init__(self, path, split="train"):
-        self.videoIDs, self.videoSpeakers, self.videoLabels, self.videoText,\
-        self.videoAudio, self.videoVisual, self.videoSentence, self.trainVid,\
-        self.validVid,self.testVid = pickle.load(open(path, 'rb'), encoding='latin1')
+        allvideoIDs, allvideoSpeakers, allvideoLabels, allvideoText,\
+        allvideoAudio, allvideoVisual, allvideoSentence, alltrainVid,\
+        allvalidVid, alltestVid = pickle.load(open(path, 'rb'), encoding='latin1')
         '''
         label index mapping = {'hap':0, 'sad':1, 'neu':2, 'ang':3, 'exc':4, 'fru':5}
         '''
         if split == "train":
-            self.keys = self.trainVid
+            self.keys = alltrainVid
         elif split =='valid':
-            self.keys = self.validVid
+            self.keys = allvalidVid
         elif split == 'test':
-            self.keys = self.testVid
+            self.keys = alltestVid
+
+        self.videoSpeakers, self.videoLabels, self.videoText, self.videoAudio, self.videoVisual = {}, {}, {}, {}, {}
+        for k in self.keys:
+            self.videoSpeakers[k] = torch.FloatTensor(np.array([[1,0] if x=='M' else [0,1] for x in allvideoSpeakers[k]]))
+            self.videoLabels[k] = torch.LongTensor(allvideoLabels[k])
+            self.videoText[k] = torch.FloatTensor(np.array(allvideoText[k]))
+            self.videoVisual[k] = torch.FloatTensor(np.array(allvideoVisual[k]))
+            self.videoAudio[k] = torch.FloatTensor(np.array(allvideoAudio[k]))
 
         self.len = len(self.keys)
 
     def __getitem__(self, index):
         vid = self.keys[index]
-        return torch.FloatTensor(self.videoText[vid]),\
-               torch.FloatTensor(self.videoVisual[vid]),\
-               torch.FloatTensor(self.videoAudio[vid]),\
-               torch.FloatTensor([[1,0] if x=='M' else [0,1] for x in\
-                                  self.videoSpeakers[vid]]),\
-               torch.FloatTensor([1]*len(self.videoLabels[vid])),\
-               torch.LongTensor(self.videoLabels[vid]),\
+        return self.videoText[vid],\
+               self.videoVisual[vid],\
+               self.videoAudio[vid],\
+               self.videoSpeakers[vid],\
+               torch.ones_like(self.videoLabels[vid]),\
+               self.videoLabels[vid],\
                vid
 
     def __len__(self):
@@ -66,6 +74,7 @@ class AVECDataset(Dataset):
     def collate_fn(self, data):
         dat = pd.DataFrame(data)
         return [pad_sequence(dat[i]) if i<4 else pad_sequence(dat[i], True) for i in dat]
+
 class MELDDataset(Dataset):
 
     def __init__(self, path, n_classes, train=True):
